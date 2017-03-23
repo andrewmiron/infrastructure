@@ -5,7 +5,7 @@ $ci_script = <<SCRIPT
 echo Setting variables
 PROJECT=am_university_repo
 VERSION=`grep DISTRIB_RELEASE /etc/lsb-release | cut -d'=' -f2`
-PLUGINS_DIR="/var/lib/jenkins/plugins"
+JENKINS_DIR="/var/lib/jenkins"
 if [ $VERSION = "14.04" ]; then
   USERNAME="vagrant"
 else
@@ -37,9 +37,9 @@ apt-get update
 apt-get install jenkins -qy
 echo 'JAVA_ARGS="-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"' >> /etc/default/jenkins
 if [ $VERSION = "14.04" ]; then
-  mkdir -p $PLUGINS_DIR
+  mkdir -p $JENKINS_DIR/plugins
 else
-  mkdir -p $PLUGINS_DIR
+  mkdir -p $JENKINS_DIR/plugins
 fi
 echo Install Jenkins Plugins ...
 wget -O /var/lib/jenkins/plugins/bouncycastle-api.hpi https://updates.jenkins-ci.org/latest/bouncycastle-api.hpi
@@ -66,12 +66,13 @@ wget -O /var/lib/jenkins/plugins/workflow-step-api.hpi https://updates.jenkins-c
 wget -O /var/lib/jenkins/plugins/maven-plugin.hpi https://updates.jenkins-ci.org/latest/maven-plugin.hpi
 wget -O /var/lib/jenkins/plugins/javadoc.hpi https://updates.jenkins-ci.org/latest/javadoc.hpi
 if [ $VERSION = "14.04" ]; then
-  chown -R jenkins:jenkins $PLUGINS_DIR
   cp /vagrant/configs/$VERSION/* /var/lib/jenkins
+  # cp -R /vagrant/jobs/$VERSION/* /var/lib/jenkins/jobs 
 else
-  chown -R jenkins:jenkins $PLUGINS_DIR
   cp /vagrant/configs/$VERSION/* /var/lib/jenkins
+  # cp -R /vagrant/jobs/$VERSION/* /var/lib/jenkins/jobs
 fi
+chown -R jenkins:jenkins $JENKINS_DIR
 service jenkins restart
 echo Installing Artifactory...
 if [ -f /var/lib/artifactory/bin/installService.sh ]; then
@@ -98,6 +99,7 @@ SCRIPT
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/trusty64"
   # config.vm.box = "ubuntu/xenial64"
+  config.ssh.insert_key = false
 
   config.vm.define "ci" do |ci|
     ci.vm.hostname = "am-ci"
@@ -108,8 +110,8 @@ Vagrant.configure("2") do |config|
     ci.vm.provider "virtualbox" do |vm|
       vm.customize [
                     'modifyvm', :id,
-                    '--memory', '2048',
-                    '--cpus', '2',
+                    '--memory', '1024',
+                    '--cpus', '1',
                   ]
     end
   end

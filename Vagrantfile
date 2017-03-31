@@ -41,6 +41,7 @@ if [ $VERSION = "14.04" ]; then
 else
   mkdir -p $JENKINS_DIR/plugins
 fi
+
 echo Install Jenkins Plugins ...
 wget -O /var/lib/jenkins/plugins/bouncycastle-api.hpi https://updates.jenkins-ci.org/latest/bouncycastle-api.hpi
 wget -O /var/lib/jenkins/plugins/credentials.hpi https://updates.jenkins-ci.org/latest/credentials.hpi
@@ -65,6 +66,9 @@ wget -O /var/lib/jenkins/plugins/workflow-api.hpi https://updates.jenkins-ci.org
 wget -O /var/lib/jenkins/plugins/workflow-step-api.hpi https://updates.jenkins-ci.org/latest/workflow-step-api.hpi
 wget -O /var/lib/jenkins/plugins/maven-plugin.hpi https://updates.jenkins-ci.org/latest/maven-plugin.hpi
 wget -O /var/lib/jenkins/plugins/javadoc.hpi https://updates.jenkins-ci.org/latest/javadoc.hpi
+wget -O /var/lib/jenkins/plugins/deploy.hpi http://updates.jenkins-ci.org/latest/deploy.hpi
+#wget -O /var/lib/jenkins/plugins/simple-theme-plugin.hpi http://updates.jenkins-ci.org/latest/simple-theme-plugin.hpi
+
 if [ $VERSION = "14.04" ]; then
   cp /vagrant/configs/$VERSION/* /var/lib/jenkins
   # cp -R /vagrant/jobs/$VERSION/* /var/lib/jenkins/jobs 
@@ -86,6 +90,25 @@ else
   service artifactory start
   rm artifactory-3.9.4.zip
 fi
+
+if [ -d /var/lib/jenkins/.m2 ]
+then
+  cp /vagrant/m2/settings.xml /var/lib/jenkins/.m2
+  chown jenkins:jenkins /var/lib/jenkins/.m2 -R
+else
+  mkdir /var/lib/jenkins/.m2
+  cp /vagrant/m2/settings.xml /var/lib/jenkins/.m2
+  chown jenkins:jenkins /var/lib/jenkins/.m2 -R
+fi
+
+
+sleep 60 
+#install jenkins job
+
+cd /tmp
+wget http://localhost:8080/jnlpJars/jenkins-cli.jar
+java -jar jenkins-cli.jar -s http://localhost:8080/ create-job EndavaBlog < /vagrant/EndavaBlog.xml
+
 echo Done. 
 SCRIPT
 
@@ -94,6 +117,37 @@ echo Provision the APP VM ...
 echo Update and upgrade ...
 apt-get update && apt-get upgrade -qy
 apt-get autoremove -qy
+ 
+apt-get install python-software-properties dos2unix -y
+add-apt-repository ppa:webupd8team/java -y
+apt-get update
+
+echo "Installing java8"
+echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections
+apt-get install oracle-java8-installer -y
+echo "Finished installing java8"
+
+echo "Installing tomcat8"
+cd /opt
+wget http://www.apache.org/dist/tomcat/tomcat-8/v8.0.42/bin/apache-tomcat-8.0.42.tar.gz
+tar -xvf apache-tomcat-8.0.42.tar.gz -C /opt/tomcat8
+rm /opt/apache-tomcat-8.0.42.tar.gz
+dos2unix /vagrant/tomcat8
+cp /vagrant/tomcat8 /etc/init.d/tomcat8
+chmod +x /etc/init.d/tomcat8
+update-rc.d -f tomcat8 defaults
+cp /vagrant/tomcat-users.xml /opt/tomcat8/apache-tomcat-8.0.42/conf/tomcat-users.xml
+/etc/init.d/tomcat8 start
+echo "Finished installing tomcat8"
+
+echo "Installing mongodb"
+wget https://www.mongodb.org/static/pgp/server-3.2.asc && apt-key add server-3.2.asc
+echo "deb [ arch=amd64 ] http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
+apt-get update
+apt-get install mongodb-org -y  
+echo "Finished installing mongodb"
+
+echo "Finished provisioning the APP VM!"
 SCRIPT
 
 Vagrant.configure("2") do |config|
@@ -104,26 +158,33 @@ Vagrant.configure("2") do |config|
   config.vm.define "ci" do |ci|
     ci.vm.hostname = "am-ci"
     ci.vm.provision :shell, :inline => $ci_script
+    ci.vm.synced_folder "./m2", "/var/lib/jenkins/.m2", create:false, owner: "root", group: "root", mount_options: ["dmode=777,fmode=777"]
+    ci.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+    ci.vm.network "private_network", ip: "10.0.0.6"
     ci.vm.network "forwarded_port", guest: 22, host: 8022
     ci.vm.network "forwarded_port", guest: 8080, host: 8080
     ci.vm.network "forwarded_port", guest: 8081, host: 8081
     ci.vm.provider "virtualbox" do |vm|
       vm.customize [
                     'modifyvm', :id,
-                    '--memory', '1024',
+                    '--memory', '1536',
                     '--cpus', '1',
                   ]
     end
   end
   config.vm.define "app" do |app|
     app.vm.hostname = "am-app"
+    app.vm.synced_folder ".", "/vagrant"
+    app.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+    app.vm.synced_folder "./log", "/opt/tomcat8/apache-tomcat-8.0.42/logs", create:true, owner: "root", group: "root", mount_options: ["dmode=777,fmode=666"]
+    app.vm.network "private_network", ip: "10.0.0.7"
     app.vm.provision :shell, :inline => $app_script
     app.vm.network "forwarded_port", guest: 22, host: 8122
-    app.vm.network "forwarded_port", guest: 9090, host: 9090
+    app.vm.network "forwarded_port", guest: 8080, host: 9090
     app.vm.provider "virtualbox" do |vm|
       vm.customize [
                     'modifyvm', :id,
-                    '--memory', '512',
+                    '--memory', '768',
                   ]
     end
   end

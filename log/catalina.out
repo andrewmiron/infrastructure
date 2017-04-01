@@ -509,3 +509,17 @@ log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more in
 01-Apr-2017 05:42:12.336 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
 01-Apr-2017 05:42:12.396 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["ajp-nio-8009"]
 01-Apr-2017 05:42:12.432 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in 5089 ms
+01-Apr-2017 05:47:56.146 INFO [http-nio-8080-exec-5] org.apache.catalina.startup.HostConfig.deployWAR Deploying web application archive /opt/tomcat8/apache-tomcat-8.0.42/webapps/EndavaBlog.war
+01-Apr-2017 05:48:00.101 INFO [http-nio-8080-exec-5] org.apache.jasper.servlet.TldScanner.scanJars At least one JAR was scanned for TLDs yet contained no TLDs. Enable debug logging for this logger for a complete list of JARs that were scanned but no TLDs were found in them. Skipping unneeded JARs during scanning can improve startup time and JSP compilation time.
+log4j:WARN No appenders could be found for logger (org.springframework.web.context.ContextLoader).
+log4j:WARN Please initialize the log4j system properly.
+log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+01-Apr-2017 05:48:10.723 INFO [http-nio-8080-exec-5] org.apache.catalina.startup.HostConfig.deployWAR Deployment of web application archive /opt/tomcat8/apache-tomcat-8.0.42/webapps/EndavaBlog.war has finished in 14,575 ms
+01-Apr-2017 05:56:06.530 INFO [main] org.apache.catalina.core.StandardServer.await A valid shutdown command was received via the shutdown port. Stopping the Server instance.
+01-Apr-2017 05:56:06.532 INFO [main] org.apache.coyote.AbstractProtocol.pause Pausing ProtocolHandler ["http-nio-8080"]
+01-Apr-2017 05:56:06.533 INFO [main] org.apache.coyote.AbstractProtocol.pause Pausing ProtocolHandler ["ajp-nio-8009"]
+01-Apr-2017 05:56:06.535 INFO [main] org.apache.catalina.core.StandardService.stopInternal Stopping service Catalina
+01-Apr-2017 05:56:06.769 INFO [main] org.apache.coyote.AbstractProtocol.stop Stopping ProtocolHandler ["http-nio-8080"]
+01-Apr-2017 05:56:06.871 INFO [main] org.apache.coyote.AbstractProtocol.stop Stopping ProtocolHandler ["ajp-nio-8009"]
+01-Apr-2017 05:56:06.873 INFO [main] org.apache.coyote.AbstractProtocol.destroy Destroying ProtocolHandler ["http-nio-8080"]
+01-Apr-2017 05:56:06.874 INFO [main] org.apache.coyote.AbstractProtocol.destroy Destroying ProtocolHandler ["ajp-nio-8009"]

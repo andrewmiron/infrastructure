@@ -93,11 +93,47 @@ fi
 
 if [ -d /var/lib/jenkins/.m2 ]
 then
-  cp /vagrant/m2/settings.xml /var/lib/jenkins/.m2
+cat <<EOF > /var/lib/jenkins/.m2/settings.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+   <servers>
+     <server>
+       <id>am-ci</id>
+       <username>admin</username>
+       <password>password</password>
+     </server>
+   </servers>
+
+   <pluginGroups></pluginGroups>
+   <proxies></proxies>
+   <mirrors></mirrors>
+   <profiles></profiles>
+</settings>
+EOF
   chown jenkins:jenkins /var/lib/jenkins/.m2 -R
 else
-  mkdir /var/lib/jenkins/.m2
-  cp /vagrant/m2/settings.xml /var/lib/jenkins/.m2
+  mkdir /var/lib/jenkins/.m2/
+  cat <<EOF > /var/lib/jenkins/.m2/settings.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+   <servers>
+     <server>
+       <id>am-ci</id>
+       <username>admin</username>
+       <password>password</password>
+     </server>
+   </servers>
+
+   <pluginGroups></pluginGroups>
+   <proxies></proxies>
+   <mirrors></mirrors>
+   <profiles></profiles>
+</settings>
+EOF
   chown jenkins:jenkins /var/lib/jenkins/.m2 -R
 fi
 
@@ -129,14 +165,18 @@ echo "Finished installing java8"
 
 echo "Installing tomcat8"
 cd /opt
-wget http://www.apache.org/dist/tomcat/tomcat-8/v8.0.42/bin/apache-tomcat-8.0.42.tar.gz
-tar -xvf apache-tomcat-8.0.42.tar.gz -C /opt/tomcat8
-rm /opt/apache-tomcat-8.0.42.tar.gz
+if [ ! -d /opt/tomcat8 ]
+then
+    mkdir /opt/tomcat8
+fi
+wget http://www.apache.org/dist/tomcat/tomcat-8/v8.0.43/bin/apache-tomcat-8.0.43.tar.gz 
+tar -xvf apache-tomcat-8.0.43.tar.gz -C /opt/tomcat8
+rm /opt/apache-tomcat-8.0.43.tar.gz
 dos2unix /vagrant/tomcat8
 cp /vagrant/tomcat8 /etc/init.d/tomcat8
 chmod +x /etc/init.d/tomcat8
 update-rc.d -f tomcat8 defaults
-cp /vagrant/tomcat-users.xml /opt/tomcat8/apache-tomcat-8.0.42/conf/tomcat-users.xml
+cp /vagrant/tomcat-users.xml /opt/tomcat8/apache-tomcat-8.0.43/conf/tomcat-users.xml
 /etc/init.d/tomcat8 start
 echo "Finished installing tomcat8"
 
@@ -158,7 +198,6 @@ Vagrant.configure("2") do |config|
   config.vm.define "ci" do |ci|
     ci.vm.hostname = "am-ci"
     ci.vm.provision :shell, :inline => $ci_script
-    ci.vm.synced_folder "./m2", "/var/lib/jenkins/.m2", create:false, owner: "root", group: "root", mount_options: ["dmode=777,fmode=777"]
     ci.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
     ci.vm.network "private_network", ip: "10.0.0.6"
     ci.vm.network "forwarded_port", guest: 22, host: 8022
@@ -176,7 +215,6 @@ Vagrant.configure("2") do |config|
     app.vm.hostname = "am-app"
     app.vm.synced_folder ".", "/vagrant"
     app.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
-    app.vm.synced_folder "./log", "/opt/tomcat8/apache-tomcat-8.0.42/logs", create:true, owner: "root", group: "root", mount_options: ["dmode=777,fmode=666"]
     app.vm.network "private_network", ip: "10.0.0.7"
     app.vm.provision :shell, :inline => $app_script
     app.vm.network "forwarded_port", guest: 22, host: 8122
